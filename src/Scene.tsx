@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import CanvasPanel, { CANVAS_HEIGHT, CANVAS_WIDTH } from "./CanvasPanel";
 import Light, { LightType } from "./Light";
 import Sphere from "./Sphere";
-import { add, computeLight, intersectRaySphere, multiply, subtract, vlength } from "./util";
+import { add, closestIntersection, computeLight, multiply, subtract, vlength } from "./util";
 
 // 场景布置
 const BACKGROUND = [255, 255, 255] // 背景就定义为白色
@@ -12,18 +12,18 @@ const CAMERA_POSITION = [0, 0, 0] // 摄像机就定义在原点
 
 // 球体设置
 // 注意这里的坐标系设置，z轴正方向是摄影机的方向，右手系
-const SPHERES = [
-  new Sphere([0, -1, 3], 1, [255, 0, 0]),
-  new Sphere([2, 0, 4], 1, [0, 0, 255]),
-  new Sphere([-2, 0, 4], 1, [0, 255, 0])
+export const SPHERES = [
+  new Sphere([0, -1, 3], 1, [255, 0, 0], 500),
+  new Sphere([2, 0, 4], 1, [0, 0, 255], 500),
+  new Sphere([-2, 0, 4], 1, [0, 255, 0], 10),
+  new Sphere([0, -5001, 0], 5000, [255, 255, 0], 1000)
 ];
 
-const LIGHTS = [
+export const LIGHTS = [
   new Light(LightType.AMBIENT, 0.2),
   new Light(LightType.POINT, 0.6, [2, 1, 0]),
   new Light(LightType.DIRECTIONAL, 0.2, [1, 4, 4])
 ]
-
 
 // 将画布坐标专成视口坐标，其实就是按比例缩小就好
 // 视口宽高就是1
@@ -38,22 +38,13 @@ export function canvasToViewport(canvasPoint) {
 // 这个函数的主要作用就是遍历所有的球体, 找出光线和球体相交的最近的点
 // 设置一个光线的出发点（你也可以看成是结束点），设置光线的方向，其实就是摄像机朝向视口某个点的方向
 function traceRay(origin, direction, min_t, max_t) {
-  function isValid(t) {
-    return min_t < t && max_t > t;
-  }
-
-  let closest_t = Infinity;
-  let closest_sphere;
-
-  for (let i = 0; i < SPHERES.length; i++) {
-    const ts = intersectRaySphere(origin, direction, SPHERES[i]);
-    for (let t of ts) {
-      if (t < closest_t && isValid(t)) {
-        closest_t = t;
-        closest_sphere = SPHERES[i];
-      }
-    }
-  }
+  const [closest_sphere, closest_t] = closestIntersection({
+    origin,
+    direction,
+    min_t,
+    max_t,
+    spheres: SPHERES
+  })
 
   if (!closest_sphere) return BACKGROUND;
 
@@ -66,7 +57,12 @@ function traceRay(origin, direction, min_t, max_t) {
   normal = multiply(1 / vlength(normal), normal)
 
   // 计算光的强度
-  const light = computeLight(point, normal, LIGHTS)
+  const light = computeLight(
+    point,
+    normal,
+    multiply(-1, direction),
+    closest_sphere.specular
+  )
 
   // 标量颜色乘法
   return multiply(light, closest_sphere.color);

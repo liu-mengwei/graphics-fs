@@ -4,11 +4,13 @@ class Sphere {
   center: number[];
   radius: number;
   color: number[];
+  specular: number;
 
-  constructor(center, radius, color) {
+  constructor(center, radius, color, specular) {
     this.center = center;
     this.radius = radius;
     this.color = color;
+    this.specular = specular;
   }
 }
 

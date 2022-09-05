@@ -1,7 +1,7 @@
 import React from "react"
 
-export const CANVAS_WIDTH = 200
-export const CANVAS_HEIGHT = 200
+export const CANVAS_WIDTH = 600
+export const CANVAS_HEIGHT = 600
 
 export class CanvasPanel extends React.Component {
   private canvasRef = React.createRef<HTMLCanvasElement>()
