@@ -2,21 +2,22 @@ import { useEffect, useRef } from "react";
 import CanvasPanel, { CANVAS_HEIGHT, CANVAS_WIDTH } from "./CanvasPanel";
 import Light, { LightType } from "./Light";
 import Sphere from "./Sphere";
-import { add, closestIntersection, computeLight, multiply, subtract, vlength } from "./util";
+import { add, Clamp, closestIntersection, computeLight, MIN_T, multiply, reflectRay, subtract, vlength } from "./util";
 
 // 场景布置
-const BACKGROUND = [255, 255, 255] // 背景就定义为白色
+const BACKGROUND = [0, 0, 0] // 背景就定义为白色
 const DISTANCE_Z = 1 // 投影平面距离摄像机的距离
 const VIEWPORT_SIZE = 1 // 投影平面的长宽为1
 const CAMERA_POSITION = [0, 0, 0] // 摄像机就定义在原点
+const DEPTH = 2 // 反射递归深度
 
 // 球体设置
 // 注意这里的坐标系设置，z轴正方向是摄影机的方向，右手系
 export const SPHERES = [
-  new Sphere([0, -1, 3], 1, [255, 0, 0], 500),
-  new Sphere([2, 0, 4], 1, [0, 0, 255], 500),
-  new Sphere([-2, 0, 4], 1, [0, 255, 0], 10),
-  new Sphere([0, -5001, 0], 5000, [255, 255, 0], 1000)
+  new Sphere([0, -1, 3], 1, [255, 0, 0], 500, 0.2),
+  new Sphere([-2, 0, 4], 1, [0, 255, 0], 10, 0.4),
+  new Sphere([2, 0, 4], 1, [0, 0, 255], 500, 0.3),
+  new Sphere([0, -5001, 0], 5000, [255, 255, 0], 1000, 0.5)
 ];
 
 export const LIGHTS = [
@@ -37,7 +38,7 @@ export function canvasToViewport(canvasPoint) {
 
 // 这个函数的主要作用就是遍历所有的球体, 找出光线和球体相交的最近的点
 // 设置一个光线的出发点（你也可以看成是结束点），设置光线的方向，其实就是摄像机朝向视口某个点的方向
-function traceRay(origin, direction, min_t, max_t) {
+function traceRay(origin, direction, min_t, max_t, depth) {
   const [closest_sphere, closest_t] = closestIntersection({
     origin,
     direction,
@@ -56,16 +57,25 @@ function traceRay(origin, direction, min_t, max_t) {
   // 除以向量的模等于单位向量
   normal = multiply(1 / vlength(normal), normal)
 
+  const view = multiply(-1, direction)
   // 计算光的强度
   const light = computeLight(
     point,
     normal,
-    multiply(-1, direction),
+    view,
     closest_sphere.specular
   )
+  const local_color = multiply(light, closest_sphere.color)
+  // 如果到了递归深度或者不反射
+  if (depth === 0 || closest_sphere.reflective === 0) return local_color
 
-  // 标量颜色乘法
-  return multiply(light, closest_sphere.color);
+  // 计算反射效果
+  const reflect_ray = reflectRay(normal, view)
+  const reflect_color = traceRay(point, reflect_ray, MIN_T, Infinity, depth - 1)
+
+  // 标量颜色乘法, 本球体颜色和反射颜色取加权
+  return add(multiply(1 - closest_sphere.reflective, local_color),
+    multiply(closest_sphere.reflective, reflect_color));
 }
 
 function Scene() {
@@ -80,8 +90,8 @@ function Scene() {
     for (let x = -CANVAS_WIDTH / 2; x < CANVAS_WIDTH / 2; x++) {
       for (let y = - CANVAS_HEIGHT / 2; y < CANVAS_HEIGHT / 2; y++) {
         const direction = canvasToViewport([x, y])
-        const color = traceRay(CAMERA_POSITION, direction, 1, Infinity);
-        canvasRef?.current.putPixel(x, y, color)
+        const color = traceRay(CAMERA_POSITION, direction, 1, Infinity, DEPTH);
+        canvasRef?.current.putPixel(x, y, Clamp(color))
       }
     }
 

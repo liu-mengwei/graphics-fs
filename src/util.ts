@@ -21,9 +21,23 @@ export function multiply(k, v) {
   return [k * v[0], k * v[1], k * v[2]];
 }
 
+// 计算反射向量
+export function reflectRay(v1, v2) {
+  return subtract(multiply(2 * dotProduct(v1, v2), v1), v2);
+}
+
 // 向量的长度 就等于向量的点积开根号
 export function vlength(v) {
   return Math.sqrt(dotProduct(v, v));
+}
+
+// 让颜色在正常的范围内
+export function Clamp(vec) {
+  return [
+    Math.min(255, Math.max(0, vec[0])),
+    Math.min(255, Math.max(0, vec[1])),
+    Math.min(255, Math.max(0, vec[2])),
+  ];
 }
 
 // 带入球体的方程，就是向量op的点积等于半径的平方
@@ -43,7 +57,7 @@ export function intersectRaySphere(origin, direction, sphere) {
   return [t1, t2];
 }
 
-const MIN_T = 0.1;
+export const MIN_T = 0.1;
 
 // 返回光照强度
 export function computeLight(point, normal, view, specular) {
@@ -92,7 +106,7 @@ export function computeLight(point, normal, view, specular) {
     // 镜面反射
     if (specular !== -1) {
       // 计算反射r向量
-      const r = subtract(multiply(2 * dotProduct(normal, l), normal), l);
+      const r = reflectRay(normal, l);
       const r_dot_v = dotProduct(r, view);
       if (r_dot_v > 0) {
         intensity +=
@@ -108,6 +122,7 @@ export function computeLight(point, normal, view, specular) {
   return intensity;
 }
 
+// 计算光线和球体的交点
 export function closestIntersection({
   origin,
   direction,
