@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import CanvasPanel, { CANVAS_HEIGHT, CANVAS_WIDTH } from "./CanvasPanel";
+import Light, { LightType } from "./Light";
 import Sphere from "./Sphere";
-import { intersectRaySphere } from "./util";
+import { add, computeLight, intersectRaySphere, multiply, subtract, vlength } from "./util";
 
 // 场景布置
 const BACKGROUND = [255, 255, 255] // 背景就定义为白色
@@ -17,6 +18,13 @@ const SPHERES = [
   new Sphere([-2, 0, 4], 1, [0, 255, 0])
 ];
 
+const LIGHTS = [
+  new Light(LightType.AMBIENT, 0.2),
+  new Light(LightType.POINT, 0.6, [2, 1, 0]),
+  new Light(LightType.DIRECTIONAL, 0.2, [1, 4, 4])
+]
+
+
 // 将画布坐标专成视口坐标，其实就是按比例缩小就好
 // 视口宽高就是1
 export function canvasToViewport(canvasPoint) {
@@ -30,6 +38,10 @@ export function canvasToViewport(canvasPoint) {
 // 这个函数的主要作用就是遍历所有的球体, 找出光线和球体相交的最近的点
 // 设置一个光线的出发点（你也可以看成是结束点），设置光线的方向，其实就是摄像机朝向视口某个点的方向
 function traceRay(origin, direction, min_t, max_t) {
+  function isValid(t) {
+    return min_t < t && max_t > t;
+  }
+
   let closest_t = Infinity;
   let closest_sphere;
 
@@ -44,13 +56,21 @@ function traceRay(origin, direction, min_t, max_t) {
   }
 
   if (!closest_sphere) return BACKGROUND;
-  return closest_sphere.color;
 
-  function isValid(t) {
-    return min_t < t && max_t > t;
-  }
+  // 求得交点P
+  const point = add(origin, multiply(closest_t, direction))
+
+  // 求得球体的法向量
+  let normal = subtract(point, closest_sphere.center)
+  // 除以向量的模等于单位向量
+  normal = multiply(1 / vlength(normal), normal)
+
+  // 计算光的强度
+  const light = computeLight(point, normal, LIGHTS)
+
+  // 标量颜色乘法
+  return multiply(light, closest_sphere.color);
 }
-
 
 function Scene() {
   const canvasRef = useRef(null) as any
