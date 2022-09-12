@@ -2,7 +2,17 @@ import { useEffect, useRef } from "react";
 import CanvasPanel, { CANVAS_HEIGHT, CANVAS_WIDTH } from "./CanvasPanel";
 import Light, { LightType } from "./Light";
 import Sphere from "./Sphere";
-import { add, Clamp, closestIntersection, computeLight, MIN_T, multiply, reflectRay, subtract, vlength } from "./util";
+import {
+  add,
+  Clamp,
+  closestIntersection,
+  computeLight,
+  MIN_T,
+  multiply,
+  reflectRay,
+  subtract,
+  vlength
+} from "./util";
 
 // 场景布置
 const BACKGROUND = [0, 0, 0] // 背景就定义为白色
@@ -80,17 +90,42 @@ function traceRay(origin, direction, min_t, max_t, depth) {
 
 function Scene() {
   const canvasRef = useRef(null) as any
+  const positionRef = useRef(CAMERA_POSITION)
+  const STEP = 0.1
 
   useEffect(() => {
     render()
   }, [])
+
+  useEffect(() => {
+    window.addEventListener('keydown', (e) => {
+      const po = positionRef.current
+      switch (e.key) {
+        case 'ArrowUp':
+          positionRef.current = [po[0], po[1] + STEP, po[2]]
+          break
+        case 'ArrowDown':
+          positionRef.current = [po[0], po[1] - STEP, po[2]]
+          break
+        case 'ArrowLeft':
+          positionRef.current = [po[0] - STEP, po[1], po[2]]
+          break
+        case 'ArrowRight':
+          positionRef.current = [po[0] + STEP, po[1], po[2]]
+          break
+      }
+      console.log(positionRef.current, 'current')
+      render()
+    })
+  }, [])
+
 
   // 渲染方法，把颜色数据放到缓冲区
   function render() {
     for (let x = -CANVAS_WIDTH / 2; x < CANVAS_WIDTH / 2; x++) {
       for (let y = - CANVAS_HEIGHT / 2; y < CANVAS_HEIGHT / 2; y++) {
         const direction = canvasToViewport([x, y])
-        const color = traceRay(CAMERA_POSITION, direction, 1, Infinity, DEPTH);
+        const color = traceRay(positionRef.current, direction, 1, Infinity, DEPTH);
         canvasRef?.current.putPixel(x, y, Clamp(color))
       }
     }

@@ -46,7 +46,7 @@ export function intersectRaySphere(origin, direction, sphere) {
 
   const k1 = dotProduct(direction, direction);
   const k2 = 2 * dotProduct(co, direction);
-  const k3 = dotProduct(co, co) - sphere.radius * sphere.radius;
+  const k3 = dotProduct(co, co) - sphere.radius2;
 
   const discriminant = k2 * k2 - 4 * k1 * k3;
   if (discriminant < 0) return [Infinity, Infinity];
@@ -86,7 +86,7 @@ export function computeLight(point, normal, view, specular) {
 
     // 计算阴影，查看光线是否被遮挡
     // 这个MIN_T的意思其实就是不能报括本球体
-    const blocker = closestIntersection({
+    const blocker = closestIntersectionEz({
       origin: point,
       direction: l,
       spheres: SPHERES,
@@ -94,7 +94,7 @@ export function computeLight(point, normal, view, specular) {
       max_t,
     });
 
-    if (blocker[0]) continue;
+    if (blocker) continue;
 
     // 漫反射
     const _intensity =
@@ -152,4 +152,24 @@ export function closestIntersection({
   }
 
   return [null, null];
+}
+
+// 优化阴影算法, 不需要找到最近的交点
+export function closestIntersectionEz({
+  origin,
+  direction,
+  spheres,
+  min_t,
+  max_t,
+}) {
+  function isValid(t) {
+    return min_t < t && max_t > t;
+  }
+
+  for (let i = 0; i < spheres.length; i++) {
+    const ts = intersectRaySphere(origin, direction, spheres[i]);
+    if (isValid(ts[0]) || isValid(ts[1])) return true;
+  }
+
+  return false;
 }

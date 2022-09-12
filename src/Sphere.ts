@@ -6,6 +6,7 @@ class Sphere {
   color: number[];
   specular: number;
   reflective: number;
+  radius2: number;
 
   constructor(center, radius, color, specular, reflective) {
     this.center = center;
@@ -13,6 +14,9 @@ class Sphere {
     this.color = color;
     this.specular = specular;
     this.reflective = reflective;
+
+    // 缓存
+    this.radius2 = radius * radius;
   }
 }
 
