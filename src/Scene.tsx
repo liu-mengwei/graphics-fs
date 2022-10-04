@@ -3,16 +3,14 @@ import CanvasPanel, { CANVAS_HEIGHT, CANVAS_WIDTH } from "./CanvasPanel";
 import Light, { LightType } from "./Light";
 import Sphere from "./Sphere";
 import {
-  add,
   Clamp,
   closestIntersection,
   computeLight,
   MIN_T,
-  multiply,
   reflectRay,
-  subtract,
   vlength
 } from "./util";
+import { add, multiply, subtract } from "./vector";
 
 // 场景布置
 const BACKGROUND = [0, 0, 0] // 背景就定义为白色
